@@ -21,71 +21,6 @@ It enables instructors to **automatically grade assignments, reports, and exams*
 
 ---
 
-## 🧱 System Architecture
-
-### High-Level Overview
-```mermaid
-flowchart TD
-  subgraph UI["Streamlit UI (app.py)"]
-    A1[File Uploads\n(PDFs, JSON rubrics)]
-    A2[Controls & Settings\n(max marks, provider, TOP_K)]
-    A3[Run Grading]
-  end
-
-  subgraph Ingestion["Ingestion & Parsing"]
-    B1[Submission Router]
-    B2[PDF/Text Parser]
-    B3[OCR (optional)]
-  end
-
-  subgraph Knowledge["Knowledge & Rubrics"]
-    K1[data/knowledge/\n(rubrics, answer keys,\nreference docs)]
-    K2[Chunking\n(CHUNK_SIZE/OVERLAP)]
-    K3[Retriever\n(TOP_K)]
-  end
-
-  subgraph LLM["LLM Layer (src/llm)"]
-    L1[Provider Selector\nLLM_PROVIDER=gemini|groq|openai_compat]
-    L2[Prompt Builder\n(rubric-aware prompts)]
-    L3[LLM Client\n(Gemini / Groq / OpenAI-compat)]
-  end
-
-  subgraph Grader["Grader Core (src/grader)"]
-    G1[GradeEvaluator\n(percentage-normalized)]
-    G2[Criteria Scoring\n+ Evidence Extraction]
-    G3[Letter Grade Mapping\n(GRADE_BANDS)]
-  end
-
-  subgraph Reporting["Reporting (src/reporting.py)"]
-    R1[GradeResult]
-    R2[Markdown Report]
-    R3[Export: data/reports/]
-  end
-
-  subgraph Storage["Storage & Outputs"]
-    S1[data/submissions/]
-    S2[data/graded_copies/]
-    S3[data/reports/]
-    S4[Logs]
-  end
-
-  %% Flows
-  UI -->|uploads| Ingestion
-  A1 --> B1
-  B1 --> B2
-  B2 -->|text| G1
-  B2 -->|text| Knowledge
-  Knowledge -->|context| LLM
-  LLM -->|score & evidence per criterion| Grader
-  Grader --> Reporting
-  Reporting -->|.md (and optional .pdf)| Storage
-  Ingestion -->|original files| S1
-  Reporting -->|graded artifacts| S2
-  Reporting --> S3
-  Grader --> S4
-
-
-
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
@@ -108,8 +43,32 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configure .env
-Create a `.env` file in the project root.
+Create a `.env` file in the project root. Example:
 
+```env
+# Project Settings
+DOCS_DIR=data/knowledge
+CHUNK_SIZE=1200
+CHUNK_OVERLAP=200
+TOP_K=6
+
+# LLM Provider (choose one: gemini | groq | openai_compat)
+LLM_PROVIDER=gemini
+
+# Gemini API
+OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+OPENAI_COMPAT_API_KEY=your_gemini_api_key
+OPENAI_COMPAT_MODEL=gemma-7b-it
+
+# Groq API (optional)
+GROQ_API_BASE=https://api.groq.com/openai/v1
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=mixtral-8x7b
+
+# OpenAI-Compatible (optional)
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
+```
 
 ### 5. Run the App
 ```bash
@@ -136,6 +95,92 @@ AutoGrader/
     ├── grader/             # Grading logic & evaluator
     ├── reporting.py        # Report generator
     └── llm/                # LLM client integrations
+```
+
+---
+
+## 🏗️ System Architecture
+
+### Component Overview
+
+```mermaid
+flowchart TD
+  subgraph UI["Streamlit UI (app.py)"]
+    A1["File Uploads<br/>(PDFs, JSON rubrics)"]
+    A2["Controls & Settings<br/>(max marks, provider, TOP_K)"]
+    A3["Run Grading"]
+  end
+  subgraph Ingestion["Ingestion & Parsing"]
+    B1["Submission Router"]
+    B2["PDF/Text Parser"]
+    B3["OCR (optional)"]
+  end
+  subgraph Knowledge["Knowledge & Rubrics"]
+    K1["data/knowledge/<br/>(rubrics, answer keys, reference docs)"]
+    K2["Chunking<br/>(CHUNK_SIZE / OVERLAP)"]
+    K3["Retriever<br/>(TOP_K)"]
+  end
+  subgraph LLM["LLM Layer (src/llm)"]
+    L1["Provider Selector<br/>LLM_PROVIDER = gemini | groq | openai_compat"]
+    L2["Prompt Builder<br/>(rubric-aware prompts)"]
+    L3["LLM Client<br/>(Gemini / Groq / OpenAI-compat)"]
+  end
+  subgraph Grader["Grader Core (src/grader)"]
+    G1["GradeEvaluator<br/>(percentage-normalized)"]
+    G2["Criteria Scoring<br/>+ Evidence Extraction"]
+    G3["Letter Grade Mapping<br/>(GRADE_BANDS)"]
+  end
+  subgraph Reporting["Reporting (src/reporting.py)"]
+    R1["GradeResult"]
+    R2["Markdown Report"]
+    R3["Export → data/reports/"]
+  end
+  subgraph Storage["Storage & Outputs"]
+    S1["data/submissions/"]
+    S2["data/graded_copies/"]
+    S3["data/reports/"]
+    S4["Logs"]
+  end
+  
+  %% Flows
+  UI --> Ingestion
+  A1 --> B1
+  B1 --> B2
+  B2 -->|text| Grader
+  B2 -->|text| Knowledge
+  Knowledge -->|context| LLM
+  LLM -->|criterion scores & evidence| Grader
+  Grader --> Reporting
+  Reporting -->|.md / .pdf| Storage
+  Ingestion -->|original files| S1
+  Reporting -->|graded artifacts| S2
+  Reporting --> S3
+  Grader --> S4
+```
+
+### Grading Sequence
+
+```mermaid
+sequenceDiagram
+  participant U as User (Faculty)
+  participant UI as Streamlit UI
+  participant ING as Ingestion/Parser
+  participant KB as Knowledge/Retriever
+  participant LLM as LLM Layer
+  participant GR as GradeEvaluator
+  participant RP as Reporting
+  
+  U->>UI: Upload rubric.json + submission.pdf<br/>Set max marks / provider
+  UI->>ING: Save files → parse PDF to text (OCR if needed)
+  ING-->>UI: Parsed text & metadata
+  UI->>KB: Load rubric + reference docs<br/>Chunk & retrieve (TOP_K)
+  KB-->>UI: Context snippets
+  UI->>LLM: Build rubric-aware prompt + context
+  LLM-->>UI: Criterion-level scores + evidence
+  UI->>GR: Normalize to % (any max marks) + letter grade
+  GR-->>UI: GradeResult (dataclass)
+  UI->>RP: Generate Markdown report
+  RP-->>U: Download report in data/reports/
 ```
 
 ---
