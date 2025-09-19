@@ -21,61 +21,7 @@ It enables instructors to **automatically grade assignments, reports, and exams*
 
 ---
 
-## 🚀 Getting Started
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/dhruvjore/AutoGrader.git
-cd AutoGrader
-```
-
-### 2. Setup a Virtual Environment
-```bash
-python -m venv autograder_venv
-.\autograder_venv\Scripts\activate   # Windows
-# or
-source autograder_venv/bin/activate  # Mac/Linux
-```
-
-### 3. Install Requirements
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure .env
-Create a `.env` file in the project root. Example:
-
-```env
-# Project Settings
-DOCS_DIR=data/knowledge
-CHUNK_SIZE=1200
-CHUNK_OVERLAP=200
-TOP_K=6
-
-# LLM Provider (choose one: gemini | groq | openai_compat)
-LLM_PROVIDER=gemini
-
-# Gemini API
-OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-OPENAI_COMPAT_API_KEY=your_gemini_api_key
-OPENAI_COMPAT_MODEL=gemma-7b-it
-
-# Groq API (optional)
-GROQ_API_BASE=https://api.groq.com/openai/v1
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=mixtral-8x7b
-
-# OpenAI-Compatible (optional)
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4o-mini
-```
-
-### 5. Run the App
-```bash
-streamlit run app.py
-```
-
----
 
 ## 🏗️ Project Structure
 
@@ -182,7 +128,38 @@ sequenceDiagram
   UI->>RP: Generate Markdown report
   RP-->>U: Download report in data/reports/
 ```
+## 🚀 Getting Started
 
+### 1. Clone the Repository
+```bash
+git clone https://github.com/dhruvjore/AutoGrader.git
+cd AutoGrader
+```
+
+### 2. Setup a Virtual Environment
+```bash
+python -m venv autograder_venv
+.\autograder_venv\Scripts\activate   # Windows
+# or
+source autograder_venv/bin/activate  # Mac/Linux
+```
+
+### 3. Install Requirements
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure .env
+Create a `.env` file in the project root.
+
+
+
+### 5. Run the App
+```bash
+streamlit run app.py
+```
+
+---
 ---
 
 ## 📈 Example Workflow
