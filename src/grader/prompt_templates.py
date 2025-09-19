@@ -7,19 +7,19 @@ Follow these rules:
 - Return ONLY valid JSON as specified below (no extra prose).
 
 JSON schema:
-{{
-  "total_score": float,                 // 0-100
+{
+  "total_score": float,                 
   "criteria": [
-    {{
+    {
       "name": str,
-      "score": float,                   // 0-100 scaled per-criterion
+      "score": float,                   
       "rationale": str
-    }}
+    }
   ],
-  "overall_feedback": str,              // 3-6 bullet-style sentences
-  "improvable_sections": [str],         // brief bullet points
-  "plagiarism_or_policy_flags": [str]   // empty if none
-}}"""
+  "overall_feedback": str,              
+  "improvable_sections": [str],         
+  "plagiarism_or_policy_flags": [str]   
+}"""
 
 PROMPT_CONTEXT_BLOCK = """Reference Materials (Top Passages):
 {context}

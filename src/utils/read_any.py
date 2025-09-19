@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 from ..rag.pdf_utils import extract_pdf_pages
 
 def read_text_any(path: str) -> str:

@@ -9,9 +9,6 @@ class GroqClient:
         self.max_tokens = max_tokens
 
     def chat(self, messages: List[Dict]) -> str:
-        """
-        messages = [{"role":"system","content":"..."}, {"role":"user","content":"..."}]
-        """
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json",

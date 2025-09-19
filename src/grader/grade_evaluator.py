@@ -1,6 +1,7 @@
 # src/grader/grade_evaluator.py
 import json
 from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass, field
 
 from ..config import (
     RUBRICS_DIR, QUESTIONS_DIR, SOLUTIONS_DIR,
@@ -11,6 +12,27 @@ from ..rag.ingest import load_corpus
 from ..rag.retriever_tfidf import TfidfRetriever
 from ..llm.groq_client import GroqClient
 from .prompt_templates import PROMPT_HEADER, PROMPT_CONTEXT_BLOCK, PROMPT_USER_BLOCK
+
+
+@dataclass
+class GradeResult:
+    grade: str | None
+    score: float | None
+    feedback: str | None
+    evidence: list[str] = field(default_factory=list)
+
+
+def _letter_from_score(score: float) -> str:
+    if score >= 93: return "A"
+    if score >= 90: return "A-"
+    if score >= 87: return "B+"
+    if score >= 83: return "B"
+    if score >= 80: return "B-"
+    if score >= 77: return "C+"
+    if score >= 73: return "C"
+    if score >= 70: return "C-"
+    if score >= 60: return "D"
+    return "F"
 
 
 def build_context_block(hits: List[Tuple[float, Dict[str, Any]]]) -> str:
@@ -63,7 +85,6 @@ class GradeEvaluator:
         def allow(match_list: Optional[List[str]], doc_path: str) -> bool:
             if not match_list:
                 return True
-            # match by filename containment
             return any(name.lower() in doc_path.lower() for name in match_list)
 
         rubric_hits = self.retriever.search_filtered(
@@ -79,10 +100,19 @@ class GradeEvaluator:
             k=q_k
         )
         hits = rubric_hits + question_hits
-        # If nothing found, fall back to generic search
         if not hits:
             hits = self.retriever.search(query, k=max(r_k+q_k, TOP_K))
         return hits
+
+    def to_grade_result(self, model_result: dict, retrieved_paths: List[str]) -> GradeResult:
+        score = float(model_result.get("total_score", 0) or 0)
+        feedback = model_result.get("overall_feedback") or ""
+        return GradeResult(
+            grade=_letter_from_score(score),
+            score=score,
+            feedback=feedback,
+            evidence=retrieved_paths,
+        )
 
     def grade(
         self,
@@ -92,8 +122,7 @@ class GradeEvaluator:
         question_allowlist: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        rubric_allowlist / question_allowlist: list of filenames (or substrings)
-        to constrain retrieval to specific files the user selected.
+        Returns a dict with keys: raw_model_text, result, retrieved
         """
         query = assignment_hint or "grading rubric and question and answer key"
         hits = self._retrieve_by_type(query, rubric_allowlist, question_allowlist, k_each=(4, 2))
@@ -123,16 +152,18 @@ class GradeEvaluator:
         except Exception:
             pass
 
+        retrieved_meta = [
+            {
+                "score": float(s),
+                "path": d.get("meta", {}).get("path"),
+                "type": d.get("meta", {}).get("type"),
+                "page": d.get("meta", {}).get("page"),
+            }
+            for s, d in hits
+        ]
+
         return {
             "raw_model_text": raw,
             "result": result,
-            "retrieved": [
-                {
-                    "score": float(s),
-                    "path": d.get("meta", {}).get("path"),
-                    "type": d.get("meta", {}).get("type"),
-                    "page": d.get("meta", {}).get("page"),
-                }
-                for s, d in hits
-            ],
+            "retrieved": retrieved_meta,
         }

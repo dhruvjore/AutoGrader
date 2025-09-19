@@ -2,9 +2,6 @@ from typing import List, Dict
 from pypdf import PdfReader
 
 def extract_pdf_pages(path: str) -> List[Dict]:
-    """
-    Returns a list of dicts: [{"page_index": int, "text": str}]
-    """
     pages = []
     reader = PdfReader(path)
     for i, page in enumerate(reader.pages):

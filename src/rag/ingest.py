@@ -45,6 +45,7 @@ def _load_dir(folder: str, chunk_size: int, overlap: int, tag: str) -> List[Dict
                     rid += 1
             continue
 
+        # text-like
         try:
             raw = p.read_text(encoding="utf-8", errors="ignore")
         except Exception:
