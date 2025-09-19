@@ -1,47 +1,67 @@
-# document_loader.py
-
 from pathlib import Path
 from typing import List, Tuple
 import re
 
-# Optional imports for richer formats
 try:
     from pypdf import PdfReader
 except Exception:
     PdfReader = None
 
 try:
-    import docx
+    import docx  # python-docx
 except Exception:
     docx = None
 
 
-def _chunk_text(text: str, chunk_size: int = 800, overlap: int = 120) -> List[str]:
+def _chunk_text(text: str, chunk_size: int = 800, overlap: int = 120, min_chars: int = 120) -> List[str]:
     text = re.sub(r"\s+", " ", text).strip()
-    chunks = []
+    chunks: List[str] = []
     i = 0
-    while i < len(text):
+    L = len(text)
+    step = max(1, chunk_size - overlap)
+    while i < L:
         chunk = text[i:i+chunk_size]
-        chunks.append(chunk)
-        i += chunk_size - overlap
-    return [c for c in chunks if c]
+        if len(chunk) >= min_chars:
+            chunks.append(chunk)
+        i += step
+    return chunks
 
 
 def load_file(path: Path) -> str:
     suffix = path.suffix.lower()
+
     if suffix == ".txt":
+        try:
+            return path.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            return ""
+
+    if suffix == ".pdf" and PdfReader is not None:
+        out = []
+        try:
+            reader = PdfReader(str(path))
+            for p in reader.pages:
+                try:
+                    t = p.extract_text() or ""
+                except Exception:
+                    t = ""
+                if t.strip():
+                    out.append(t)
+        except Exception:
+            return ""
+        return "\n".join(out)
+
+    if suffix == ".docx" and docx is not None:
+        try:
+            d = docx.Document(str(path))
+            return "\n".join(p.text for p in d.paragraphs if p.text)
+        except Exception:
+            return ""
+
+    try:
         return path.read_text(encoding="utf-8", errors="ignore")
-    if suffix in [".pdf"] and PdfReader is not None:
-        text = []
-        reader = PdfReader(str(path))
-        for page in reader.pages:
-            text.append(page.extract_text() or "")
-        return "\n".join(text)
-    if suffix in [".docx"] and docx is not None:
-        d = docx.Document(str(path))
-        return "\n".join(p.text for p in d.paragraphs)
-    # Fallback: treat as text
-    return path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return ""
 
 
 def load_corpus(
@@ -49,23 +69,32 @@ def load_corpus(
     glob_patterns: Tuple[str, ...] = ("*.txt", "*.pdf", "*.docx"),
     chunk_size: int = 800,
     overlap: int = 120,
+    min_chars: int = 120,
 ) -> List[Tuple[str, str]]:
     """
     Returns list of (doc_id, chunk_text)
-    doc_id is "<relative_path>::chunk_<n>"
+    doc_id uses POSIX relative path + chunk id: "<relative_path>::chunk_<n>"
     """
     all_chunks: List[Tuple[str, str]] = []
     for root in roots:
         root = Path(root)
+        if not root.exists():
+            continue
         for pattern in glob_patterns:
             for f in root.rglob(pattern):
+                if not f.is_file():
+                    continue
                 try:
                     raw = load_file(f)
-                    chunks = _chunk_text(raw, chunk_size, overlap)
+                    if not raw.strip():
+                        continue
+                    chunks = _chunk_text(raw, chunk_size, overlap, min_chars)
+                    if not chunks:
+                        continue
+                    rel = f.relative_to(root).as_posix() if f.is_relative_to(root) else f.as_posix()
                     for n, ch in enumerate(chunks):
-                        doc_id = f"{f.as_posix()}::chunk_{n}"
+                        doc_id = f"{rel}::chunk_{n}"
                         all_chunks.append((doc_id, ch))
                 except Exception:
-                    # be resilient
                     continue
     return all_chunks

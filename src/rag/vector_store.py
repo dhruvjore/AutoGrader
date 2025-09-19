@@ -1,11 +1,9 @@
-vector_store.py
 from dataclasses import dataclass
 from typing import List, Tuple
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 from pathlib import Path
-
 
 @dataclass
 class IndexedCorpus:
@@ -14,15 +12,17 @@ class IndexedCorpus:
     ids: List[str]
     texts: List[str]
 
-
 class TfidfStore:
     def __init__(self, persist_path: str = "data/grades/tfidf_store.pkl"):
         self.persist_path = Path(persist_path)
         self.idx: IndexedCorpus | None = None
 
     def build(self, pairs: List[Tuple[str, str]]):
-        ids, texts = zip(*pairs) if pairs else ([], [])
-        vec = TfidfVectorizer(ngram_range=(1,2), max_features=50_000)
+        if not pairs:
+            self.idx = None
+            return
+        ids, texts = zip(*pairs)
+        vec = TfidfVectorizer(ngram_range=(1, 2), max_features=50_000, stop_words="english")
         X = vec.fit_transform(list(texts))
         self.idx = IndexedCorpus(vec, X, list(ids), list(texts))
 
@@ -39,9 +39,6 @@ class TfidfStore:
                 self.idx = pickle.load(f)
 
     def search(self, query: str, k: int = 5) -> List[Tuple[str, str, float]]:
-        """
-        Returns [(doc_id, text, score), ...] top-k by cosine sim.
-        """
         if not self.idx:
             return []
         qv = self.idx.vectorizer.transform([query])

@@ -1,14 +1,11 @@
-#grade_evaluator.py
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 import re
 from ..rag.retriever import Retriever
 
-# --- Simple, deterministic baseline "judge" (keyword overlap) ---
 def keyword_score(student_text: str, rubric_text: str, context_snippets: List[str]) -> Tuple[float, Dict]:
     """
     Scores 0..1 by overlapping informative tokens between student and rubric+context.
-    Very rough baseline to make tests pass; swap with LLM later.
     """
     def toks(s: str) -> set:
         s = s.lower()
@@ -24,7 +21,6 @@ def keyword_score(student_text: str, rubric_text: str, context_snippets: List[st
     score = len(common) / max(1, len(rub))
     return score, {"common": sorted(list(common))[:20], "total_terms": len(rub)}
 
-# --- Grade mapping ---
 def numeric_to_letter(x: float) -> str:
     if x >= 0.85: return "A"
     if x >= 0.75: return "A-"
@@ -45,7 +41,6 @@ class GradeResult:
 class GradeEvaluator:
     """
     RAG-driven evaluator (retrieves k chunks, then judges).
-    Judge is a pluggable function; default is keyword_score baseline.
     """
     def __init__(self, retriever: Retriever, judge_fn=keyword_score, k: int = 5):
         self.retriever = retriever
@@ -53,7 +48,6 @@ class GradeEvaluator:
         self.k = k
 
     def evaluate(self, student_text: str, rubric_text: str) -> GradeResult:
-        # Use student_text as the retrieval query (can be refined later)
         hits = self.retriever.retrieve(student_text, k=self.k)
         context_snips = [t for (_id, t, _s) in hits]
         score, meta = self.judge_fn(student_text, rubric_text, context_snips)

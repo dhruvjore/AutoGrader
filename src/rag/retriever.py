@@ -1,9 +1,7 @@
-# retriever.py
 from typing import List, Tuple
 from pathlib import Path
 from .document_loader import load_corpus
 from .vector_store import TfidfStore
-
 
 class Retriever:
     def __init__(self, persist_path: str = "data/grades/tfidf_store.pkl"):
