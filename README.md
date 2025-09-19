@@ -23,26 +23,6 @@ It enables instructors to **automatically grade assignments, reports, and exams*
 
 
 
-## 🏗️ Project Structure
-
-```
-AutoGrader/
-│── app.py                  # Streamlit app (UI)
-│── grader.py               # Core grading pipeline
-│── requirements.txt        # Dependencies
-│── .env.example            # Example env file
-│── .gitignore              # Ignore configs
-│── data/
-│   ├── submissions/        # Student submissions (PDFs, text)
-│   ├── graded_copies/      # Annotated graded submissions
-│   ├── reports/            # Generated reports (md/pdf)
-│   └── knowledge/          # Rubrics & reference material
-│── src/
-    ├── grader/             # Grading logic & evaluator
-    ├── reporting.py        # Report generator
-    └── llm/                # LLM client integrations
-```
-
 ---
 
 ## 🏗️ System Architecture
@@ -128,6 +108,28 @@ sequenceDiagram
   UI->>RP: Generate Markdown report
   RP-->>U: Download report in data/reports/
 ```
+
+## 🏗️ Project Structure
+
+```
+AutoGrader/
+│── app.py                  # Streamlit app (UI)
+│── grader.py               # Core grading pipeline
+│── requirements.txt        # Dependencies
+│── .env.example            # Example env file
+│── .gitignore              # Ignore configs
+│── data/
+│   ├── submissions/        # Student submissions (PDFs, text)
+│   ├── graded_copies/      # Annotated graded submissions
+│   ├── reports/            # Generated reports (md/pdf)
+│   └── knowledge/          # Rubrics & reference material
+│── src/
+    ├── grader/             # Grading logic & evaluator
+    ├── reporting.py        # Report generator
+    └── llm/                # LLM client integrations
+```
+
+
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
