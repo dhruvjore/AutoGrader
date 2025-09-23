@@ -1,4 +1,4 @@
-# 📚 AutoGrader – AI-Powered Assignment Grading
+# 📚 GradingAssist – AI-Powered Assignment Grading
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)  
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-red.svg)](https://streamlit.io/)  
